@@ -1,4 +1,4 @@
-# 最优持仓成本计算器
+# Worth the Ringgit · 最优持仓成本计算器
 
 手机、电脑、汽车、包、手表这类会贬值的自用资产，怎么买、用多久再卖，年均成本最低？这个工具先问你的条件，再只在你能走的买法里找最优解。
 
@@ -8,7 +8,7 @@
 
 ## 怎么用
 
-在线使用：仓库设置里开启 GitHub Pages（Settings → Pages → Deploy from a branch → `main` / root）后，访问 `https://zhihong1357.github.io/max-agent/`。
+在线使用：仓库设置里开启 GitHub Pages（Settings → Pages → Deploy from a branch → `main` / root）后，访问 `https://zhihong1357.github.io/worth-the-ringgit/`。
 
 本地使用：下载仓库，直接用浏览器打开 `index.html`。
 
