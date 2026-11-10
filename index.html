@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最优持仓成本计算器</title>
+<meta name="description" content="手机、电脑、汽车、包、手表怎么买最划算：按你的信用卡、税率和公司条件，算出年均成本最低的买法。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>最优持仓成本计算器</h1>
+  <p>手机、电脑、汽车、包、手表，怎么买、用多久再卖，年均成本最低。先告诉它你的条件，它只在你能走的买法里找最优解。数据按马来西亚市场与 2026 课税年规则，金额单位 RM。</p>
+</header>
+
+<div class="cols">
+  <form id="f" class="left" autocomplete="off">
+    <section class="panel">
+      <h2><span class="step">1</span>你的条件（全部可选）</h2>
+      <div class="field"><label for="cardType">信用卡</label>
+        <select id="cardType"></select></div>
+      <div id="cardBox" class="sub">
+        <div class="pair">
+          <div class="field"><label for="cardRate">回报率 %</label><input id="cardRate" type="number" min="0" max="20" step="0.1"></div>
+          <div class="field"><label for="cardCap">每月回扣封顶 RM（0 为不封顶）</label><input id="cardCap" type="number" min="0" step="1"></div>
+        </div>
+        <div class="field"><label for="instMonths">可用的 0% 分期</label><select id="instMonths"></select></div>
+        <label class="check"><input id="eppRewards" type="checkbox"> 我的卡分期交易也有回扣或积分</label>
+      </div>
+      <div class="field"><label for="income">个人年应课税收入</label>
+        <select id="income"></select></div>
+      <div id="reliefBox" class="sub">
+        <div class="field"><label for="reliefLeft">今年生活方式减免还剩的额度 RM</label><input id="reliefLeft" type="number" min="0" max="2500" step="50"></div>
+      </div>
+      <div class="field"><label for="hasCompany">公司</label>
+        <select id="hasCompany"><option value="0">没有公司</option><option value="1">有公司，资产会真实用于业务</option></select></div>
+      <div id="coBox" class="sub">
+        <div class="field"><label for="companyRate">公司边际税率</label><select id="companyRate"></select></div>
+        <label class="check"><input id="controlling" type="checkbox"> 我是控股董事</label>
+      </div>
+      <div class="field"><label for="usedOk">二手</label>
+        <select id="usedOk"><option value="1">可以买二手</option><option value="0">只买全新</option></select></div>
+      <div id="usedBox" class="sub">
+        <div class="field"><label for="maxAge">能接受的最大机龄（年）</label><input id="maxAge" type="number" min="0" max="8" step="1"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="step">2</span>想买的资产</h2>
+      <div class="field"><label for="preset">类别</label><select id="preset"></select></div>
+      <div class="pair">
+        <div class="field"><label for="price">新品标价 RM</label><input id="price" type="number" min="0" step="1"></div>
+        <div class="field"><label for="discount">全新买入折扣 %</label><input id="discount" type="number" min="0" max="90" step="0.5"></div>
+      </div>
+      <details>
+        <summary>更多参数</summary>
+        <div>
+          <div class="pair">
+            <div class="field"><label for="rate">资金成本 % / 年</label><input id="rate" type="number" min="0" max="20" step="0.1"></div>
+            <div class="field"><label for="sellFee">卖出费用 %</label><input id="sellFee" type="number" min="0" max="50" step="1"></div>
+          </div>
+          <div class="pair">
+            <div class="field"><label for="usedPremium">买二手溢价 %</label><input id="usedPremium" type="number" min="0" max="50" step="1"></div>
+            <div class="field"><label for="hours">每年使用小时</label><input id="hours" type="number" min="0" step="10"></div>
+          </div>
+          <div class="pair">
+            <div class="field"><label for="runPct">年维护占新价 %</label><input id="runPct" type="number" min="0" max="30" step="0.1"></div>
+            <div class="field"><label for="ageGrowth">维护随机龄每年增 %</label><input id="ageGrowth" type="number" min="0" max="50" step="1"></div>
+          </div>
+          <div class="pair">
+            <div class="field"><label for="runFixed">其他年度固定成本 RM</label><input id="runFixed" type="number" min="0" step="10"></div>
+            <div class="field"><label for="life">使用寿命上限（年）</label><input id="life" type="number" min="1" max="25" step="1"></div>
+          </div>
+          <div class="pair">
+            <div class="field"><label for="refurb">一次性翻修 RM</label><input id="refurb" type="number" min="0" step="10"></div>
+            <div class="field"><label for="refurbAge">发生在机龄（年）</label><input id="refurbAge" type="number" min="0" max="20" step="1"></div>
+          </div>
+          <div class="field"><label for="curve">保值曲线：第 1 年起每年二手成交价占新价 %（逗号分隔，可填你查到的实际数据）</label><input id="curve" type="text"></div>
+          <div class="field"><label for="band">历史波动幅度 %</label><input id="band" type="number" min="0" max="50" step="1"></div>
+        </div>
+      </details>
+    </section>
+  </form>
+
+  <div class="right">
+    <section class="panel">
+      <h2><span class="step">3</span>结论</h2>
+      <p class="verdict" id="verdict"></p>
+      <p class="note" id="robust"></p>
+      <div id="warns"></div>
+    </section>
+    <section class="panel">
+      <h2>你能走的每种买法（点一行查看它的策略表）</h2>
+      <div class="scroll"><table id="paths"></table></div>
+    </section>
+    <section class="panel">
+      <h2 id="gridTitle">策略表</h2>
+      <div class="scroll"><table id="grid"></table></div>
+      <p class="note">行是买入时的机龄，列是持有年数，数字是年均成本 RM，颜色越深越便宜。点任意一格看明细。</p>
+    </section>
+    <section class="panel">
+      <h2 id="bdTitle">明细（现值）</h2>
+      <div class="scroll"><table class="bd" id="bd"></table></div>
+    </section>
+    <section class="panel">
+      <h2>保值曲线</h2>
+      <div class="scroll"><svg id="chart" viewBox="0 0 640 220" width="100%" role="img" aria-label="保值曲线"></svg></div>
+      <p class="note" id="basis"></p>
+    </section>
+  </div>
+</div>
+
+<footer>
+  <p>这是测算工具，不是财务或税务建议。保值曲线是默认值，不是报价，买之前请查同款二手的实际成交价并填入。税务按简化规则处理，申报前请咨询持牌税务师。</p>
+  <p>开源项目：<a href="https://github.com/zhihong1357/max-agent">github.com/zhihong1357/max-agent</a>。数据来源见 <a href="https://github.com/zhihong1357/max-agent/blob/main/DATA.md">DATA.md</a>，欢迎提交实际成交数据。数据更新于 <span id="updated"></span>。</p>
+</footer>
+</div>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
