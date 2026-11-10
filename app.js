@@ -107,6 +107,11 @@
     $('bd').innerHTML = rows.map(x => `<tr><td>${x[0]}</td><td>${x[1] < 0 ? '−' : ''}${fmt(Math.abs(x[1]))}</td></tr>`).join('') +
       `<tr class="total"><td>${cur.hold} 年净成本现值</td><td>${fmt(cur.npv)}</td></tr><tr><td>折成年均成本</td><td>${fmt(cur.eac)}</td></tr>`;
 
+    // 登记链接预填用户正在看的资产，方便了解真实需求
+    const ps = DATA.presets[asset.preset];
+    $('waitlist').href = 'https://github.com/zhihong1357/worth-the-ringgit/issues/new?title=' + encodeURIComponent('登记：想用定制分析') + '&body=' +
+      encodeURIComponent(`我想分析的资产：${ps.group} · ${ps.name}，标价 RM ${fmt(asset.price)}\n具体型号：\n我最想知道的是：\n我愿意为一次分析付：RM `);
+
     chart(cur); $('basis').textContent = '默认曲线依据：' + DATA.presets[asset.preset].basis + ' 阴影带是历史波动幅度。';
   }
 

@@ -60,3 +60,8 @@ td.na{color:var(--muted)}
 svg text{font:11px var(--mono);fill:var(--muted)}
 
 .right.empty section:not(:first-child){display:none}
+.offer{border-color:var(--accent)}
+.offer p{margin:0}
+.pill.soon{background:var(--warn-soft);color:var(--warn);margin-left:0}
+.btn{display:inline-block;background:var(--accent);color:var(--panel);text-decoration:none;font-weight:600;padding:8px 16px;border-radius:6px;margin-right:8px}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
