@@ -18,7 +18,7 @@
   }
 
   function defaultProfile() {
-    return { rate: DATA.defaults.rate,
+    return { rate: DATA.defaults.rate, goal: 'cash', maxUpfront: 0,
       card: { type: 'none', rate: 0, cap: 0, instMonths: 0, eppRewards: false },
       personal: { rate: 0, reliefLeft: DATA.tax.lifestyleReliefCap },
       company: { has: false, rate: 17, controlling: true },
@@ -88,7 +88,9 @@
       else if (profile.company.controlling) warnings.push('控股董事能否享受手机、电脑的实物福利豁免存在争议，请向税务师确认。');
     }
     const eac = i > 0 ? npv * i / (1 - Math.pow(1 + i, -hold)) : npv / hold;
-    return { path, buyAge, hold, buy, saleGross, saleNet, npv, eac, perHour: p.hours > 0 ? eac / p.hours : null, parts, warnings };
+    const upfront = path.inst > 0 ? 0 : buy, monthly = path.inst > 0 ? buy / path.inst : 0;   // 现金流：首付与月供
+    if (path.inst > hold * 12) warnings.push('持有期短于分期期：卖出后还要继续还月供，记得用卖出所得留足余款。');
+    return { path, buyAge, hold, buy, saleGross, saleNet, npv, eac, upfront, monthly, perHour: p.hours > 0 ? eac / p.hours : null, parts, warnings };
   }
 
   function maxUsedAge(asset, profile) {
@@ -97,16 +99,22 @@
     return Math.max(0, Math.min(m, asset.life - 1));
   }
 
+  // 排序：现金流优先时先比首付现金，再比年均成本；成本优先时只比年均成本
+  function better(profile) {
+    return (a, b) => profile.goal === 'cash' && Math.round(a.upfront) !== Math.round(b.upfront) ? a.upfront - b.upfront : a.eac - b.eac;
+  }
+
   function grid(asset, profile, path) {
     const maxA = maxUsedAge(asset, profile), maxH = Math.min(asset.life, asset.life > 12 ? 12 : 10);
-    const rows = []; let best = null, bestNew = null;
+    const rows = [], cmp = better(profile); let best = null, bestNew = null;
     for (let a = 0; a <= maxA; a++) {
       const row = [];
       for (let h = 1; h <= maxH; h++) {
-        const r = a + h > asset.life ? null : evaluate(asset, profile, path, a, h);
+        let r = a + h > asset.life ? null : evaluate(asset, profile, path, a, h);
+        if (r && profile.maxUpfront > 0 && r.upfront > profile.maxUpfront) r = null;   // 超出一次能拿出的现金
         row.push(r);
-        if (r && (!best || r.eac < best.eac)) best = r;
-        if (r && a === 0 && (!bestNew || r.eac < bestNew.eac)) bestNew = r;
+        if (r && (!best || cmp(r, best) < 0)) best = r;
+        if (r && a === 0 && (!bestNew || cmp(r, bestNew) < 0)) bestNew = r;
       }
       rows.push(row);
     }
@@ -115,12 +123,14 @@
 
   // 主入口：对每条可行路径求最优，再给出全局最优和稳健性
   function solve(asset, profile) {
+    const cmp = better(profile);
     const grids = paths(asset, profile).map(pt => grid(asset, profile, pt)).filter(g => g.best);
-    grids.sort((a, b) => a.best.eac - b.best.eac);
+    if (!grids.length) return { grids, best: null };
+    grids.sort((a, b) => cmp(a.best, b.best));
     const best = grids[0].best;
-    const bestNew = grids.map(g => g.bestNew).filter(Boolean).sort((a, b) => a.eac - b.eac)[0];
+    const bestNew = grids.map(g => g.bestNew).filter(Boolean).sort(cmp)[0];
     const shifted = k => Object.assign({}, asset, { curve: asset.curve.map((v, n) => n === 0 ? 1 : v * k) });
-    const scen = k => { const a2 = shifted(k); const g = paths(a2, profile).map(pt => grid(a2, profile, pt)).filter(x => x.best).sort((x, y) => x.best.eac - y.best.eac)[0]; return { best: g.best, same: evaluate(a2, profile, best.path, best.buyAge, best.hold) }; };
+    const scen = k => { const a2 = shifted(k); const g = paths(a2, profile).map(pt => grid(a2, profile, pt)).filter(x => x.best).sort((x, y) => cmp(x.best, y.best))[0]; return { best: g.best, same: evaluate(a2, profile, best.path, best.buyAge, best.hold) }; };
     const lo = scen(1 - asset.band), hi = scen(1 + asset.band);
     const stable = [lo, hi].every(s => s.best.path.id === best.path.id && s.best.buyAge === best.buyAge && s.best.hold === best.hold);
     return { grids, best, bestNew, robust: { low: lo, high: hi, stable } };

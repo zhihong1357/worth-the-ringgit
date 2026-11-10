@@ -58,3 +58,5 @@ td.na{color:var(--muted)}
 .bd td:last-child{font-family:var(--mono)}
 .bd tr.total td{font-weight:600;border-top:2px solid var(--ink);border-bottom:none}
 svg text{font:11px var(--mono);fill:var(--muted)}
+
+.right.empty section:not(:first-child){display:none}

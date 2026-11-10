@@ -31,7 +31,7 @@
     $('hasCompany').value = profile.company.has ? 1 : 0; $('companyRate').value = profile.company.rate; $('controlling').checked = profile.company.controlling;
     $('usedOk').value = profile.used.ok ? 1 : 0;
     $('maxAge').value = profile.used.maxAge == null ? DATA.presets[asset.preset].maxUsed : profile.used.maxAge;
-    $('rate').value = profile.rate;
+    $('rate').value = profile.rate; $('goal').value = profile.goal; $('maxUpfront').value = profile.maxUpfront;
     $('preset').value = asset.preset; ASSET_NUM.forEach(k => $(k).value = asset[k]);
     $('curve').value = asset.curve.slice(1).map(v => +(v * 100).toFixed(1)).join(', ');
     $('band').value = Math.round(asset.band * 100);
@@ -44,7 +44,7 @@
     profile.personal.reliefLeft = Math.min(DATA.tax.lifestyleReliefCap, num('reliefLeft'));
     profile.company.has = $('hasCompany').value === '1'; profile.company.rate = +$('companyRate').value; profile.company.controlling = $('controlling').checked;
     profile.used.ok = $('usedOk').value === '1'; profile.used.maxAge = Math.round(num('maxAge'));
-    profile.rate = num('rate');
+    profile.rate = num('rate'); profile.goal = $('goal').value; profile.maxUpfront = num('maxUpfront');
     ASSET_NUM.forEach(k => asset[k] = num(k));
     asset.life = Math.max(1, Math.round(asset.life));
     const cv = $('curve').value.split(/[,，\s]+/).map(parseFloat).filter(v => isFinite(v) && v >= 0).map(v => v / 100);
@@ -60,25 +60,31 @@
   function render() {
     fromForm();
     const s = HC.solve(asset, profile), best = s.best;
+    document.querySelector('.right').classList.toggle('empty', !best);
+    if (!best) { $('verdict').innerHTML = `没有可行的买法：一次最多拿出 RM ${fmt(profile.maxUpfront)} 不够付现，也没有可用的 0% 分期。可以提高这个上限、接受二手，或在信用卡里选上分期。`; $('robust').textContent = ''; $('warns').innerHTML = ''; return; }
     const g = s.grids.find(x => x.path.id === view.path) || s.grids[0];
     let cur = (view.age != null && g.rows[view.age] && g.rows[view.age][view.hold - 1]) || g.best;
 
     // 结论
-    const yearly = HC.evaluate(asset, profile, s.grids.find(x => x.path.id === 'cash').path, 0, 1);
-    let v = `最优解：<b>${best.path.label}</b>，<b>${what(best)}</b>。年均成本 RM ${fmt(best.eac)}` + (best.perHour != null ? `，约 RM ${best.perHour.toFixed(2)} / 小时` : '') + '。';
-    v += ` 比“付现买全新、每年换”（RM ${fmt(yearly.eac)}）每年少 RM ${fmt(yearly.eac - best.eac)}。`;
-    if (best.buyAge > 0 && s.bestNew) v += ` 如果只买全新：${s.bestNew.path.label}，持有 ${s.bestNew.hold} 年，年均 RM ${fmt(s.bestNew.eac)}。`;
+    const yearly = HC.evaluate(asset, profile, HC.paths(asset, profile)[0], 0, 1);
+    const cashOf = r => r.monthly > 0 ? `首付 RM 0，月供 RM ${fmt(r.monthly)} × ${r.path.inst} 个月` : `一次付 RM ${fmt(r.upfront)}`;
+    let v = `${profile.goal === 'cash' ? '现金流优先的最优解' : '成本最低的最优解'}：<b>${best.path.label}</b>，<b>${what(best)}</b>。${cashOf(best)}；年均成本 RM ${fmt(best.eac)}` + (best.perHour != null ? `，约 RM ${best.perHour.toFixed(2)} / 小时` : '') + '。';
+    v += ` “付现买全新、每年换”是 RM ${fmt(yearly.eac)} / 年。`;
+    const lowest = s.grids.map(x => x.rows.flat().filter(Boolean).sort((p, q) => p.eac - q.eac)[0]).sort((p, q) => p.eac - q.eac)[0];
+    if (profile.goal === 'cash' && lowest.eac < best.eac - 1) v += ` 只看成本的话，${lowest.path.label}、${what(lowest)}更便宜（RM ${fmt(lowest.eac)} / 年），但要${cashOf(lowest)}。`;
+    else if (best.buyAge > 0 && s.bestNew) v += ` 如果只买全新：${s.bestNew.path.label}，持有 ${s.bestNew.hold} 年，年均 RM ${fmt(s.bestNew.eac)}。`;
     $('verdict').innerHTML = v;
     const r = s.robust, pct = Math.round(asset.band * 100);
     $('robust').textContent = `稳健性：把保值曲线整体下调或上调 ${pct}%，这个买法的年均成本在 RM ${fmt(r.high.same.eac)} – ${fmt(r.low.same.eac)} 之间；` +
       (r.stable ? '最优买法不变。' : `最优买法会变（残值偏低时：${r.low.best.path.label}，${what(r.low.best)}；偏高时：${r.high.best.path.label}，${what(r.high.best)}），请先查实际二手价。`);
     const ws = [...new Set([...best.warnings, ...cur.warnings])];
+    if (best.monthly > 0) ws.push('分期会占用信用额度直到还清；多笔分期的月供会叠加，请确认每月总月供在可承受范围内。');
     if (profile.card.type === 'cashback' && profile.card.cap > 0) ws.push(`回扣卡每月封顶 RM ${fmt(profile.card.cap)}，大额消费实际只拿到封顶额。`);
     $('warns').innerHTML = ws.map(w => `<p class="warn">${w}</p>`).join('');
 
     // 路径对比
-    $('paths').innerHTML = '<tr><th>买法</th><th>最优策略</th><th>年均成本</th><th>只买全新</th></tr>' + s.grids.map((x, i) =>
-      `<tr class="pick${x === g ? ' on' : ''}" tabindex="0" data-path="${x.path.id}"><td>${x.path.label}${i === 0 ? '<span class="pill">最优</span>' : ''}</td><td>${what(x.best)}</td><td class="num">${fmt(x.best.eac)}</td><td class="num">${x.bestNew ? `${x.bestNew.hold} 年 · ${fmt(x.bestNew.eac)}` : '·'}</td></tr>`).join('');
+    $('paths').innerHTML = '<tr><th>买法</th><th>最优策略</th><th>首付现金</th><th>月供</th><th>年均成本</th></tr>' + s.grids.map((x, i) =>
+      `<tr class="pick${x === g ? ' on' : ''}" tabindex="0" data-path="${x.path.id}"><td>${x.path.label}${i === 0 ? '<span class="pill">最优</span>' : ''}</td><td>${what(x.best)}</td><td class="num">${fmt(x.best.upfront)}</td><td class="num">${x.best.monthly > 0 ? fmt(x.best.monthly) + ' × ' + x.path.inst : '·'}</td><td class="num">${fmt(x.best.eac)}</td></tr>`).join('');
 
     // 策略表
     $('gridTitle').textContent = `策略表：${g.path.label}`;

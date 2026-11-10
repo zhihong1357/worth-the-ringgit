@@ -11,13 +11,19 @@
 <div class="wrap">
 <header>
   <h1>最优持仓成本计算器</h1>
-  <p>手机、电脑、汽车、包、手表，怎么买、用多久再卖，年均成本最低。先告诉它你的条件，它只在你能走的买法里找最优解。数据按马来西亚市场与 2026 课税年规则，金额单位 RM。</p>
+  <p>手机、电脑、汽车、包、手表，怎么买、用多久再卖，既不压垮现金流，年均成本又最低。先告诉它你的条件，它只在你能走的买法里找最优解。数据按马来西亚市场与 2026 课税年规则，金额单位 RM。</p>
 </header>
 
 <div class="cols">
   <form id="f" class="left" autocomplete="off">
     <section class="panel">
       <h2><span class="step">1</span>你的条件（全部可选）</h2>
+      <div class="field"><label for="goal">你的目标</label>
+        <select id="goal"><option value="cash">现金流优先：先少占用现金，再比成本</option><option value="cost">成本优先：只比年均成本</option></select></div>
+      <div class="pair">
+        <div class="field"><label for="rate">闲钱年回报率 %</label><input id="rate" type="number" min="0" max="50" step="0.1"></div>
+        <div class="field"><label for="maxUpfront">一次最多拿出 RM（0 为不限）</label><input id="maxUpfront" type="number" min="0" step="100"></div>
+      </div>
       <div class="field"><label for="cardType">信用卡</label>
         <select id="cardType"></select></div>
       <div id="cardBox" class="sub">
@@ -57,13 +63,10 @@
         <summary>更多参数</summary>
         <div>
           <div class="pair">
-            <div class="field"><label for="rate">资金成本 % / 年</label><input id="rate" type="number" min="0" max="20" step="0.1"></div>
             <div class="field"><label for="sellFee">卖出费用 %</label><input id="sellFee" type="number" min="0" max="50" step="1"></div>
-          </div>
-          <div class="pair">
             <div class="field"><label for="usedPremium">买二手溢价 %</label><input id="usedPremium" type="number" min="0" max="50" step="1"></div>
-            <div class="field"><label for="hours">每年使用小时</label><input id="hours" type="number" min="0" step="10"></div>
           </div>
+          <div class="field"><label for="hours">每年使用小时</label><input id="hours" type="number" min="0" step="10"></div>
           <div class="pair">
             <div class="field"><label for="runPct">年维护占新价 %</label><input id="runPct" type="number" min="0" max="30" step="0.1"></div>
             <div class="field"><label for="ageGrowth">维护随机龄每年增 %</label><input id="ageGrowth" type="number" min="0" max="50" step="1"></div>

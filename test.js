@@ -2,6 +2,7 @@
 const assert = require('assert');
 const HC = require('./engine.js');
 const near = (a, b, tol = 1) => assert.ok(Math.abs(a - b) <= tol, `${a} != ${b}`);
+const HCp = HC.defaultProfile; HC.defaultProfile = () => Object.assign(HCp(), { goal: 'cost' });   // 旧测试按成本优先
 const cash = { id: 'cash', label: '', payer: 'personal', cashback: false, inst: 0 };
 
 // 1. 零利率下，年均成本 = 买入价 − 卖出净额
@@ -63,5 +64,21 @@ assert.strictEqual(HC.marginalRate(150000), 25);
   const s = HC.solve(a, p);
   assert.strictEqual(s.best.buyAge, 0);
   assert.ok(s.robust.low.same.eac > s.best.eac && s.robust.high.same.eac < s.best.eac);
+}
+// 10. 现金流优先：有 0% 分期时选分期（首付为 0），再在分期里选年均成本最低的
+{
+  const a = HC.defaultAsset('iphone_pro'), p = HC.defaultProfile(); p.goal = 'cash';
+  p.card = { type: 'points', rate: 0.5, cap: 0, instMonths: 24, eppRewards: false };
+  const s = HC.solve(a, p);
+  assert.strictEqual(s.best.path.id, 'inst');
+  assert.strictEqual(s.best.upfront, 0);
+  near(s.best.monthly, 5999 / 24, 0.01);
+  p.goal = 'cost';
+  assert.strictEqual(HC.solve(a, p).best.path.id, 'cash');      // 成本优先时是付现买二手
+}
+// 11. 一次最多拿出 RM2,000：付现买全新被排除
+{
+  const a = HC.defaultAsset('iphone_pro'), p = HC.defaultProfile(); p.maxUpfront = 2000; p.used.ok = false;
+  assert.strictEqual(HC.solve(a, p).best, null);
 }
 console.log('全部通过');
